@@ -190,11 +190,31 @@ button { font: inherit; color: inherit; cursor: pointer; }
 }
 .note:hover { transform: rotate(0deg) translateY(-2px); box-shadow: var(--shadow-lift); }
 .note:focus-visible { outline: 2.5px solid var(--accent); outline-offset: 3px; }
-.c-lemon  { background: var(--lemon); }
-.c-sakura { background: var(--sakura); }
-.c-matcha { background: var(--matcha); }
-.c-ramune { background: var(--ramune); }
-.c-mikan  { background: var(--mikan); }
+.c-lemon  { --bg: var(--lemon); }
+.c-sakura { --bg: var(--sakura); }
+.c-matcha { --bg: var(--matcha); }
+.c-ramune { --bg: var(--ramune); }
+.c-mikan  { --bg: var(--mikan); }
+.note, .sheet { background: var(--bg, var(--lemon)); }
+/* Notes with more details look like two stacked notes: the front tilts left, the back tilts right. */
+.note { isolation: isolate; }
+.note.has-details { --tilt: -1.6deg; }
+.note.has-details,
+.note.has-details:hover,
+.note.has-details.editing { background: none; box-shadow: none; }
+.note .face, .note .back {
+  position: absolute; inset: 0; border-radius: inherit;
+  pointer-events: none;
+}
+.note .face { z-index: -1; background: var(--bg); box-shadow: var(--shadow); }
+.note .back {
+  z-index: -2;
+  background: color-mix(in srgb, var(--bg) 90%, #000);
+  box-shadow: var(--shadow);
+  transform: translate(6px, 3px) rotate(5deg);
+}
+.note.has-details:hover .face,
+.note.has-details.editing .face { box-shadow: var(--shadow-lift); }
 .note .text {
   padding-right: 18px;
   font-size: 15px; line-height: 1.4;
@@ -266,6 +286,8 @@ body.dragging, body.dragging * { cursor: grabbing !important; }
   transition: none !important;
 }
 .ghost .actions, .ghost .expand { display: none; }
+.ghost.has-details { box-shadow: none !important; }
+.ghost.has-details .face { box-shadow: var(--shadow-lift); }
 
 /* ---------- Expanded note ---------- */
 dialog.detail {
@@ -480,10 +502,12 @@ function noteEl(n) {
   const age = daysSince(n.moved);
   return h('article', {
       class: `note c-${n.color}${n.details ? ' has-details' : ''}`, tabindex: 0, 'data-id': n.id,
-      style: `--tilt:${tilt(n.id)}deg`,
+      style: n.details ? null : `--tilt:${tilt(n.id)}deg`,
       'aria-label': n.text,
       ondblclick: () => startEdit(n.id),
     },
+    n.details ? h('i', { class: 'back', 'aria-hidden': 'true' }) : null,
+    n.details ? h('i', { class: 'face', 'aria-hidden': 'true' }) : null,
     h('div', { class: 'text' }, n.text),
     h('div', { class: 'meta' },
       h('span', { title: 'Added' }, fmtDate(n.created)),
